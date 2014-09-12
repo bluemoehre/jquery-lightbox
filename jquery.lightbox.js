@@ -30,14 +30,16 @@
      * @type {Object}
      */
     var defOpts = {
-        tplLightbox: '<div id="lightbox" style="z-index:1000"><button name="close"></button><div class="narrow"></div></div>',
-        tplDarkness: '<div id="darkness" style="position:fixed; top:0; left:0; right:0; bottom:0; background-color:rgba(0,0,0,0.5); z-index:999"></div>',
+        tplLightbox: '<div class="lightbox"><button name="close"></button><div class="narrow"></div></div>',
+        tplDarkness: '<div class="darknessLayer" style="position:fixed; top:0; left:0; right:0; bottom:0;"></div>',
         selectClose: 'button[name=close]',
         selectContent: '.narrow',
         content: null,
         waitForImages: true,
         textError: 'Error: The requested content is not available at the moment.',
-        animationSpeed: 'fast'
+        animationSpeed: 'fast',
+        delayElementRemoval: 0, // for using own CSS transitions - should be 0 when using normal animations
+        insertMode: 'append' // append or prepend
     };
 
     /**
@@ -68,13 +70,6 @@
      */
     var runningRequest = null;
 
-    /**
-     * TODO remove
-     */
-    var debug = console;
-    debug.level = Debug.DEBUG_LOG; // TODO remove me after everything works =)
-
-
 
     /**
      * Wait for all images within given content to load before calling the callback
@@ -82,7 +77,6 @@
      * @param {function} [callback]
      */
     function waitForImages($content, callback) {
-        debug.log('waitForImages() called');
         callback = typeof callback === 'function' ? callback : $.noop;
         var $uncachedImages = $content.find('img').addBack('img').filter(function () {
             var img = new Image();
@@ -91,43 +85,41 @@
         });
         var uncachedImagesCount = $uncachedImages.length;
 
-        $uncachedImages.each(function () {
-            var img = new Image();
-            $(img).one('load.' + PLUGIN_NAME + ' error.' + PLUGIN_NAME, function (evt) {
-                debug.log(evt.type + ' event triggered on', this);
-                uncachedImagesCount--;
-                if (uncachedImagesCount === 0) {
-                    debug.log('all images have completed loading');
-                    callback();
-                }
+        if (uncachedImagesCount){
+            $uncachedImages.each(function () {
+                var img = new Image();
+                $(img).one('load.' + PLUGIN_NAME + ' error.' + PLUGIN_NAME, function (evt) {
+                    uncachedImagesCount--;
+                    if (uncachedImagesCount === 0) {
+                        callback();
+                    }
+                });
+                img.src = this.src;
             });
-            img.src = this.src;
-        });
+        } else {
+            callback();
+        }
 
-        debug.log('waiting for ' + uncachedImagesCount + ' images to load');
     }
 
     /**
      * Loads content from remote resource
      */
     function loadRemoteContent(url, callback) {
-        debug.log('loadRemoteContent() called with', url);
         abortRequest();
-        debug.info('requesting "' + url + '"');
         runningRequest = $.ajax({
             url: url,
-            dataType: 'html',
+            dataType: 'html image',
             success: function (data) {
-                debug.info('request succeeded');
                 callback(data);
             },
             error: function (jqXhr) {
                 // if returned data was an image return the related HTML-Tag for the image
-                if (jqXhr.getResponseHeader('content-type').match(/^image\//)) {
-                    debug.info('server answered with an image - building tag for that');
-                    callback('<img src="' + encodeURIComponent(url) + '" alt="" />');
-                } else {
-                    debug.warn('request failed');
+                var contentType = jqXhr.getResponseHeader('content-type') || '';
+                if (contentType.match(/^image\//)) {
+                    var img = document.createElement('img');
+                    img.src = url;
+                    callback(img.outerHTML);
                 }
             },
             complete: function () {
@@ -140,9 +132,7 @@
      * Abort a currently running request
      */
     function abortRequest() {
-        debug.log('abortRequest() called');
         if (runningRequest !== null) {
-            debug.log('aborting running request on "' + runningRequest + '"');
             runningRequest.abort();
             runningRequest = null;
         }
@@ -226,23 +216,19 @@
 
             // --- bind events ---
             $el.on('click.' + PLUGIN_NAME, function (evt) {
-                debug.log(evt.type + ' event triggered on', this);
                 evt.preventDefault();
                 self.show();
             });
             $win.on('keyup.' + PLUGIN_NAME, function (evt) {
-                debug.log(evt.type + ' event triggered on', this);
                 if (evt.keyCode === KEY.ESC) {
                     self.hide();
                 }
             });
             $darkness.on('click.' + PLUGIN_NAME, function (evt) {
-                debug.log(evt.type + ' event triggered on', this);
                 evt.preventDefault();
                 self.hide();
             });
             $lightbox.on('click.' + PLUGIN_NAME, opts.selectClose, function (evt) {
-                debug.log(evt.type + ' event triggered on', this);
                 evt.preventDefault();
                 self.hide();
             });
@@ -252,8 +238,7 @@
          * Inserts and show the darkness layer of this instance
          */
         function showDarkness() {
-            debug.log('showDarkness() called');
-            $darkness.prependTo('body').stop(true).show();
+            $darkness[opts.insertMode + 'To']('body').stop(true).show();
 
             // replace current darkness
             // do NOT use configured animationSpeed, due it may differ between instances
@@ -272,10 +257,11 @@
          * Hides and removes the darkness layer of this instance
          */
         function hideDarkness() {
-            debug.log('hideDarkness() called');
             $currentDarkness = null;
             $darkness.stop(true).fadeTo(opts.animationSpeed, 0, function () {
-                $darkness.detach();
+                setTimeout(function () {
+                    $darkness.detach();
+                }, opts.delayElementRemoval);
             });
         }
 
@@ -283,8 +269,7 @@
          * Shows and centers the Lightbox with its current contents
          */
         function showLightbox() {
-            debug.log('showLightbox() called');
-            $lightbox.prependTo('body').stop(true).show();
+            $lightbox[opts.insertMode + 'To']('body').stop(true).show();
             centerLightbox();
             if ($currentLightbox && $currentLightbox !== $lightbox) {
                 $currentLightbox.remove();
@@ -293,7 +278,6 @@
             }
             $currentLightbox = $lightbox;
             $win.on('resize.' + PLUGIN_NAME, function (evt) {
-                debug.log(evt.type + ' event triggered on', this);
                 centerLightbox();
             });
             $lightbox.on('DOMNodeInserted.' + PLUGIN_NAME + ' DOMNodeRemoved.' + PLUGIN_NAME, function () {
@@ -305,13 +289,14 @@
          * Hides and detaches the lightbox
          */
         function hideLightbox() {
-            debug.log('hideLightbox() called');
             $win.off('resize.' + PLUGIN_NAME);
             $lightbox
                 .off('DOMNodeInserted.' + PLUGIN_NAME + ' DOMNodeRemoved.' + PLUGIN_NAME)
                 .stop(true)
                 .fadeTo(opts.animationSpeed, 0, function () {
-                    $lightbox.detach();
+                    setTimeout(function () {
+                        $lightbox.detach();
+                    }, opts.delayElementRemoval);
                 });
         }
 
@@ -320,7 +305,6 @@
          * If its higher than the viewport it uses absokute position to be scrollable
          */
         function centerLightbox() {
-            debug.log('center() called');
             var top = ($win.height() - $lightbox.outerHeight()) / 2;
             var left = ($win.width() - $lightbox.outerWidth()) / 2;
             if (top >= 0) {
@@ -339,7 +323,6 @@
          * @param {function} [callback]
          */
         function loadContent(content, callback) {
-            debug.log('setContent() called with', content);
             callback = typeof callback === 'function' ? callback : $.noop;
             var $content = content instanceof jQuery ? content : $($.parseHTML($.trim(content)));
             if (opts.waitForImages) {
@@ -365,7 +348,6 @@
          * Removes the content off the lightbox
          */
         function removeContent() {
-            debug.log('removeContent() called');
             $lightbox.find(opts.selectContent).empty();
         }
 
@@ -387,8 +369,6 @@
                         showLightbox();
                     });
                 }
-            } else {
-                debug.info('nothing to show');
             }
         };
 
@@ -396,8 +376,8 @@
          * Hide lightbox
          */
         this.hide = function () {
-            hideLightbox();
             hideDarkness();
+            hideLightbox();
         };
 
         /**
@@ -416,7 +396,6 @@
 
         init(args);
     }
-
 
     // Register plugin on jQuery
     $.fn[PLUGIN_NAME] = function () {
