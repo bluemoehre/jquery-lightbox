@@ -109,11 +109,8 @@
         abortRequest();
         runningRequest = $.ajax({
             url: url,
-            dataType: 'html image',
-            success: function (data) {
-                callback(data);
-            },
-            error: function (jqXhr) {
+            accepts: 'text/html,image/*',
+            success: function (data, status, jqXhr) {
                 // if returned data was an image return the related HTML-Tag for the image
                 var contentType = jqXhr.getResponseHeader('content-type') || '';
                 if (contentType.match(/^image\//)) {
