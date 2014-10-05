@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>jquery.lightbox.js - DEMO | BlueMöhre</title>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+    <script type="text/javascript" src="../jquery.lightbox.js"></script>
+    <style>
+        body {
+            margin: 0 auto 100px;
+            width: 1000px;
+            font-family: sans-serif;
+        }
+        .lightbox {
+            padding: 20px;
+            background: #fff;
+        }
+        .lightbox>button[name=close] {
+            position: absolute;
+            right: 0;
+            top: 0;
+        }
+        .darknessLayer {
+            background: rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Welcome to the jquery.lightbox.js demo page</h1>
+    <p>This demo uses the plugin without any additional configuration. Feel free to inspect the code of this page.</p>
+    <section id="variant-1">
+        <h2>Bind via data-attribute</h2>
+        <p>
+            The easiest implementation for binding the lightbox to links is via data-attribute.<br/>
+            The lightbox will use the URL of the HREF-attribute.<br/>
+            Click <a href="ajax/variant-1-1.html" data-lightbox>here</a>!
+        </p>
+    </section>
+    <section id="variant-2">
+        <h2>Bind via jQuery-Collection</h2>
+        <p>
+            Also you can bind a lot of links via jQuery-collection:<br/><br/>
+            <a href="img/dummy-image-blue.png"><img width="160" height="90" src="img/dummy-image-blue.png" alt="Blue Dummy"/></a>
+            <a href="img/dummy-image-green.png"><img width="160" height="90" src="img/dummy-image-green.png" alt="Blue Dummy"/></a>
+            <a href="img/dummy-image-red.png"><img width="160" height="90" src="img/dummy-image-red.png" alt="Blue Dummy"/></a>
+        </p>
+        <script>
+            $('#variant-2 a').lightbox();
+        </script>
+    </section>
+</main>
+</body>
+</html>

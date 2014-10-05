@@ -30,8 +30,8 @@
      * @type {Object}
      */
     var defOpts = {
-        tplLightbox: '<div class="lightbox"><button name="close"></button><div class="narrow"></div></div>',
-        tplDarkness: '<div class="darknessLayer" style="position:fixed; top:0; left:0; right:0; bottom:0;"></div>',
+        htmlLightbox: '<div class="lightbox"><button name="close">&#215;</button><div class="narrow"></div></div>',
+        htmlDarkness: '<div class="darknessLayer" style="position:fixed; top:0; left:0; right:0; bottom:0;"></div>',
         selectClose: 'button[name=close]',
         selectContent: '.narrow',
         content: null,
@@ -85,10 +85,10 @@
         });
         var uncachedImagesCount = $uncachedImages.length;
 
-        if (uncachedImagesCount){
+        if (uncachedImagesCount) {
             $uncachedImages.each(function () {
                 var img = new Image();
-                $(img).one('load.' + PLUGIN_NAME + ' error.' + PLUGIN_NAME, function (evt) {
+                $(img).one('load.' + PLUGIN_NAME + ' error.' + PLUGIN_NAME, function () {
                     uncachedImagesCount--;
                     if (uncachedImagesCount === 0) {
                         callback();
@@ -117,6 +117,8 @@
                     var img = document.createElement('img');
                     img.src = url;
                     callback(img.outerHTML);
+                } else {
+                    callback(data);
                 }
             },
             complete: function () {
@@ -198,12 +200,12 @@
 
             // init darkness
             if (!$darkness) {
-                $darkness = $(opts.tplDarkness).fadeTo(0, 0);
+                $darkness = $(opts.htmlDarkness).fadeTo(0, 0);
             }
 
             // init lightbox itself (without content)
             if (!$lightbox) {
-                $lightbox = $(opts.tplLightbox).hide().fadeTo(0, 0).css({
+                $lightbox = $(opts.htmlLightbox).hide().fadeTo(0, 0).css({
                     display: 'block',
                     position: 'fixed',
                     top: 0,
@@ -270,11 +272,12 @@
             centerLightbox();
             if ($currentLightbox && $currentLightbox !== $lightbox) {
                 $currentLightbox.remove();
+                $lightbox.fadeTo(0, 1);
             } else {
                 $lightbox.fadeTo(opts.animationSpeed, 1);
             }
             $currentLightbox = $lightbox;
-            $win.on('resize.' + PLUGIN_NAME, function (evt) {
+            $win.on('resize.' + PLUGIN_NAME, function () {
                 centerLightbox();
             });
             $lightbox.on('DOMNodeInserted.' + PLUGIN_NAME + ' DOMNodeRemoved.' + PLUGIN_NAME, function () {
@@ -287,6 +290,7 @@
          */
         function hideLightbox() {
             $win.off('resize.' + PLUGIN_NAME);
+            $currentLightbox = null;
             $lightbox
                 .off('DOMNodeInserted.' + PLUGIN_NAME + ' DOMNodeRemoved.' + PLUGIN_NAME)
                 .stop(true)
@@ -353,7 +357,7 @@
          */
         this.show = function () {
             if (opts.content.length > 0) {
-                if (typeof opts.content === 'string' && opts.content.match(/^(https?:\/)?\//)) {
+                if (typeof opts.content === 'string' && opts.content.match(/^(https?:\/|\.)?\//)) {
                     loadRemoteContent(opts.content, function (content) {
                         loadContent(content, function () {
                             showDarkness();

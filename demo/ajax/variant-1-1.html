@@ -1,0 +1,17 @@
+<div style="width: 800px">
+    <h2>The lightbox and fallbacks</h2>
+    <p>
+        Please keep in mind users use the web very differently!<br/>
+        It might be a user wants to open a lightbox-link in a new tab using e.g. the right click/context menu.
+        In this case the lightbox will do ... nothing. It simply can't. So you have to care about a fallback!
+    </p>
+    <p>
+        In general you should build a server-side switch:<br/>
+        <b>If any JavaScript does request content</b> there will be an additional header field "<i>X-Requested-With: <b>XMLHttpRequest</b></i>".
+        So does the lightbox. If this field and value was set, you can respond with partial HTML. If not you should return a full page.<br/>
+    </p>
+    <p>
+        If you do not want to have a full page available (because you don't care about defaults and an easy to use web ;)
+        consider to NOT use links for binding the lightbox. Use one of the multiple other possibilities to bind the lightbox!
+    </p>
+</div>
